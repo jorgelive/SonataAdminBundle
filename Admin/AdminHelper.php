@@ -69,6 +69,34 @@ class AdminHelper
     }
 
     /**
+     *
+     * @param Symfony\Component\Form\FormBuilder $formBuilder
+     * @param string $elementId
+     *
+     * @return array
+     */
+    private function generateElementId(FormBuilder $formBuilder, $elementId)
+    {
+        $nameBase = $formBuilder->getName();
+        $elementId = $nameBase."_".$elementId;
+        foreach (new FormBuilderIterator($formBuilder) as $name => $formBuilder) {
+            $nameClean = substr($name, strlen($nameBase)+1);
+            if(strpos($elementId, $name) === 0) {
+                if(strlen($name) == strlen($elementId)) {
+                    return array($nameClean);
+                }
+                return array_merge(
+                    array($nameClean), 
+                    $this->generateElementId(
+                        $formBuilder,
+                        substr($elementId, strlen($name)+1)
+                    )
+                );
+            }
+        }
+    }
+
+    /**
      * Note:
      *   This code is ugly, but there is no better way of doing it.
      *   For now the append form element action used to add a new row works
@@ -91,8 +119,8 @@ class AdminHelper
         $form->setData($subject);
         $form->handleRequest($admin->getRequest());
 
-        $elementId = preg_replace('#.(\d+)#', '[$1]', implode('.', explode('_', substr($elementId, strpos($elementId, '_') + 1))));
-
+        $elementId = preg_replace('#.(\d+)#', '[$1]', implode('.',$this->generateElementId($formBuilder, substr($elementId, strpos($elementId, '_') + 1))));
+        
         // append a new instance into the object
         $this->addNewInstance($admin, $elementId);
 
